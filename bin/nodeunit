@@ -2,14 +2,10 @@
 
 var
     fs = require('fs'),
-<<<<<<< HEAD
-    path = require('path');
-=======
     sys = require('sys'),
     path = require('path'),
     childProcess = require('child_process'),
     $ = require('qbox').create();
->>>>>>> Node JS Coverage support added via
 
 // TODO: remove this when https://github.com/joyent/node/pull/1312
 //       lands in core.
@@ -38,13 +34,11 @@ var usage = "Usage: nodeunit [options] testmodule1.js testfolder [...] \n" +
             "  --config FILE     the path to a JSON file with options\n" +
             "  --reporter FILE   optional path to a reporter file to customize the output\n" +
             "  --list-reporters  list available build-in reporters\n" +
-<<<<<<< HEAD
-            "  -t name,          specify a test to run\n" +
-=======
+            "  -t name           specify a test to run\n" +
             "  --list-reporters  list available build-in reporters\n" +
             "  -c                add code coverage support and display summary \n" +
             "  -cv               add code coverage support and display results in details (verbose mode) \n" +
->>>>>>> Node JS Coverage support added via
+            "  -cr, --coverage-results     display Code Coverage results in details (verbose mode) \n" +
             "  -h, --help        display this help and exit\n" +
             "  -v, --version     output version information and exit";
 
@@ -104,19 +98,17 @@ args.forEach(function (arg) {
     } else if ((arg === '-h') || (arg === '--help')) {
         console.log(usage);
         process.exit(0);
-    } else if(arg === '-c') {
-        codeCoverage.enabled = true;
-        setUpCodeCoverage();
-    } else if(arg === '-cv') {
-        codeCoverage.enabled = true;
+    } else if(arg === '--coverage-results') {
         codeCoverage.verbose = true;
-        setUpCodeCoverage();
+    } else if(arg === '-cr') {
+        codeCoverage.verbose = true;
     } else {
+        codeCoverage.enabled = true;
+        setUpCodeCoverage();
         files.push(arg);
     }
 });
 
-<<<<<<< HEAD
 if (files.length === 0) {
     console.log('Files required.');
     console.log(usage);
@@ -130,7 +122,7 @@ if (config_file) {
     for (var option in custom_options) {
         if (typeof option === 'string') {
             options[option] = custom_options[option];
-=======
+
 function setUpCodeCoverage() {
     
     childProcess.exec('rm -fr lib-cov && node-jscoverage lib lib-cov', function(err){
@@ -141,7 +133,7 @@ function setUpCodeCoverage() {
     });
 }
 
-if(codeCoverage) {
+if(codeCoverage.enabled) {
     $.ready(function() {
         startTesting();
     });
@@ -165,7 +157,6 @@ function startTesting() {
             if (typeof option === 'string') {
                 options[option] = custom_options[option];
             }
->>>>>>> Node JS Coverage support added via
         }
     }
 
