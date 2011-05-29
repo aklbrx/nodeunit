@@ -40,6 +40,7 @@ var usage = "Usage: nodeunit [options] testmodule1.js testfolder [...] \n" +
             "  -c                add code coverage support and display summary \n" +
             "  -cv               add code coverage support and display results in details (verbose mode) \n" +
             "  -cr, --coverage-results     display Code Coverage results in details (verbose mode) \n" +
+            "  -ci, --coverage-ignored     ignore code coverage support (ideal for identify real line numbers when error occured) \n" +
             "  -h, --help        display this help and exit\n" +
             "  -v, --version     output version information and exit";
 
