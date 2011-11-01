@@ -18,7 +18,7 @@ var args = process.ARGV.slice(2);
 
 //global indicators for Code Coverage
 codeCoverage = {};
-codeCoverage.paths = ['lib-cov'];
+codeCoverage.paths = ['coverage/output'];
 
 var files = [];
 
@@ -35,12 +35,9 @@ var usage = "Usage: nodeunit [options] testmodule1.js testfolder [...] \n" +
             "  --config FILE     the path to a JSON file with options\n" +
             "  --reporter FILE   optional path to a reporter file to customize the output\n" +
             "  --list-reporters  list available build-in reporters\n" +
-            "  -t name           specify a test to run\n" +
-            "  --list-reporters  list available build-in reporters\n" +
-            "  -c                add code coverage support and display summary \n" +
-            "  -cv               add code coverage support and display results in details (verbose mode) \n" +
             "  -cr, --coverage-results     display Code Coverage results in details (verbose mode) \n" +
             "  -ci, --coverage-ignored     ignore code coverage support (ideal for identify real line numbers when error occured) \n" +
+            "  -t name,          specify a test to run\n" +
             "  -h, --help        display this help and exit\n" +
             "  -v, --version     output version information and exit";
 
@@ -110,9 +107,12 @@ args.forEach(function (arg) {
         codeCoverage.ignored = true;
         codeCoverage.paths = ['lib'];
         reporter_file = 'codecov'
+    } else if(arg ==='--coverage') {
+      reporter_file = 'codecov'
+      setUpCodeCoverage();
     } else {
         codeCoverage.enabled = true;
-        setUpCodeCoverage();
+        // setUpCodeCoverage();
         reporter_file = 'codecov'
         files.push(arg);
     }
@@ -124,23 +124,6 @@ if (files.length === 0) {
     process.exit(1);
 }
 
-if (config_file) {
-    content = fs.readFileSync(config_file, 'utf8');
-    var custom_options = JSON.parse(content);
-
-    for (var option in custom_options) {
-        if (typeof option === 'string') {
-            options[option] = custom_options[option];
-
-function setUpCodeCoverage() {
-    
-    childProcess.exec('rm -fr lib-cov && node-jscoverage lib lib-cov', function(err){
-            if (err) throw err;
-            require.paths.unshift('lib-cov');
-            $.start();
-    });
-}
-
 if(codeCoverage.enabled) {
     $.ready(function() {
         startTesting();
@@ -150,7 +133,6 @@ if(codeCoverage.enabled) {
 }
 
 function startTesting() {
-
     if (files.length === 0) {
         sys.puts('Files required.');
         sys.puts(usage);
@@ -169,7 +151,7 @@ function startTesting() {
     }
 
     var builtin_reporters = require(__dirname + '/../lib/reporters');
-    if (reporter_file in builtin_reporters) {
+    if (reporter_file in builtin_reporters) {      
         testrunner = builtin_reporters[reporter_file];
     }
     else {
@@ -177,4 +159,44 @@ function startTesting() {
     }
 
     testrunner.run(files, options);
+}
+
+function setUpCodeCoverage() {
+    if(path.existsSync('coverage/output')) {
+      childProcess.exec('rm -fr coverage/output', function(err){
+        if (err) { 
+          throw err;
+        } else {
+          childProcess.exec('jscoverage coverage/src coverage/output', function(err){
+              if (err) {
+
+                  if(err.message.match('jscoverage')) {
+                      console.log(err);
+                      console.log('Install node-jscoverage from\n\thttps://github.com/visionmedia/node-jscoverage ');
+                  } else {
+                      throw err; 
+                  }
+              } else {
+                  require.paths.unshift('coverage/output');
+                  $.start();
+              }
+          });          
+        }
+      });
+    } else {
+      childProcess.exec('jscoverage coverage/src coverage/output', function(err){
+          if (err) {
+
+              if(err.message.match('jscoverage')) {
+                  console.log(err.stack);
+                  console.log('Install node-jscoverage from\n\thttps://github.com/visionmedia/node-jscoverage ');
+              } else {
+                  throw err; 
+              }
+          } else {
+              require.paths.unshift('coverage/output');
+              $.start();
+          }
+      });
+    }
 }
