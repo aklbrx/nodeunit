@@ -20,6 +20,7 @@ var args = process.ARGV.slice(2);
 codeCoverage = {
   paths : [],
   usual : 'cov',
+  js    : 'js',
   tests : 'spec',
   files : 'src',
   results : []
@@ -114,21 +115,12 @@ args.forEach(function (arg) {
         codeCoverage.paths = ['lib'];
         reporter_file = 'codecov'
     } else if (arg.slice(0, 9) === "--source=") {
-      codeCoverage.js = arg.slice(9);
-      if(codeCoverage.enabled === false)
-      {
-        reporter_file = 'codecov'
-        codeCoverage.enabled = true;
-        setUpCodeCoverage();
-      }
+      codeCoverage.file = arg.slice(9);
     } else if (arg.slice(0, 11) === "--coverage=") {
       codeCoverage.usual = arg.slice(11);      
-      if(codeCoverage.enabled === false)
-      {
-        reporter_file = 'codecov'
-        codeCoverage.enabled = true;
-        setUpCodeCoverage();
-      }
+      reporter_file = 'codecov'
+      codeCoverage.enabled = true;
+      setUpCodeCoverage();
     } else {
       // codeCoverage.enabled = true;
       // setUpCodeCoverage();
@@ -181,41 +173,53 @@ function startTesting() {
 }
 
 function setUpCodeCoverage() {
-  if(path.existsSync(codeCoverage.usual)) {
-    childProcess.exec('rm -fr ' + codeCoverage.usual, function(err){
-      if (err) { 
-        throw err;
-      } else {
-        childProcess.exec('jscoverage ' + codeCoverage.js + ' ' + codeCoverage.usual, function(err){
-            if (err) {
-
-                if(err.message.match('jscoverage')) {
-                    console.log(err);
-                    console.log('Install node-jscoverage from\n\thttps://github.com/visionmedia/node-jscoverage ');
-                } else {
-                    throw err; 
-                }
-            } else {
-                require.paths.unshift(codeCoverage.usual);
-                $.start();
-            }
-        });          
-      }
+  childProcess.exec('mkdir js', function(err){
+    childProcess.exec('coffee -o js/' + codeCoverage.files + ' -c ' + codeCoverage.files, function(err){
+      childProcess.exec('coffee -o js/' + codeCoverage.tests + ' -c ' + codeCoverage.tests, function(err){
+        childProcess.exec('jscoverage js ' + codeCoverage.usual, function(err){
+          require.paths.unshift(codeCoverage.usual);
+          $.start();
+        });
+      });
     });
-  } else {
-    childProcess.exec('jscoverage ' + codeCoverage.js + ' ' + codeCoverage.usual, function(err){
-        if (err) {
-
-            if(err.message.match('jscoverage')) {
-                console.log(err.stack);
-                console.log('Install node-jscoverage from\n\thttps://github.com/visionmedia/node-jscoverage ');
-            } else {
-                throw err; 
-            }
-        } else {
-            require.paths.unshift(codeCoverage.usual);
-            $.start();
-        }
-    });
-  }
+  });
 }
+//     
+//   if(path.existsSync(codeCoverage.usual)) {
+//     childProcess.exec('rm -fr ' + codeCoverage.usual, function(err){
+//       if (err) { 
+//         throw err;
+//       } else {
+//         childProcess.exec('jscoverage ' + codeCoverage.js + ' ' + codeCoverage.usual, function(err){
+//             if (err) {
+// 
+//                 if(err.message.match('jscoverage')) {
+//                     console.log(err);
+//                     console.log('Install node-jscoverage from\n\thttps://github.com/visionmedia/node-jscoverage ');
+//                 } else {
+//                     throw err; 
+//                 }
+//             } else {
+//                 require.paths.unshift(codeCoverage.usual);
+//                 $.start();
+//             }
+//         }); 
+//       }
+//     });
+//   } else {
+//     childProcess.exec('jscoverage ' + codeCoverage.js + ' ' + codeCoverage.usual, function(err){
+//         if (err) {
+// 
+//             if(err.message.match('jscoverage')) {
+//                 console.log(err.stack);
+//                 console.log('Install node-jscoverage from\n\thttps://github.com/visionmedia/node-jscoverage ');
+//             } else {
+//                 throw err; 
+//             }
+//         } else {
+//             require.paths.unshift(codeCoverage.usual);
+//             $.start();
+//         }
+//     });
+//   }
+// }
