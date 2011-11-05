@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var
+var async = require('../deps/async'),
     fs = require('fs'),
     sys = require('sys'),
     path = require('path'),
@@ -20,7 +20,7 @@ var args = process.ARGV.slice(2);
 codeCoverage = {
   paths : [],
   usual : 'cov',
-  js    : 'js',
+  base  : 'js',
   tests : 'spec',
   files : 'src',
   results : []
@@ -172,18 +172,78 @@ function startTesting() {
     testrunner.run(files, options);
 }
 
+function handleErr(err) {
+  if(err !== null) {
+      console.log(err.message);
+      console.log(err.stack);
+      process.exit();
+  }
+}
+function handleFile(file, cb) {
+  fs.stat(file, function (err, stats) {
+    console.log(file);
+    handleErr(err);
+    if (stats.isFile()) {
+      if(/-unit\.js$/.exec(file) !== null) {
+        console.log('cat cov_prep.js ' + file + ' > rdy/spec/' + file);
+        childProcess.exec('cat cov_prep.js ' + file + ' > rdy/spec/' + file, cb);
+      } else {
+        console.log('mv ' + file + ' rdy/spec/' + file.slice(0,9));
+        childProcess.exec('mv ' + file + ' rdy/spec/' + file.slice(0,9, cb));
+      }            
+    } else if (stats.isDirectory()) {
+      console.log('mkdir rdy/spec/' + file.slice(0,9));
+      childProcess.exec('mkdir rdy/spec/' + file.slice(0,9, cb));
+
+      fs.readdir(file, function (err, files) {
+        async.concatSeries(files, 
+          function(innerfile, callback) {
+            callback(null, [file + '/' + innerfile]);
+          }, function (err, innerfiles) {
+            async.forEach(innerfiles, handleFile, cb);
+        });
+      });
+    }
+  });
+}
 function setUpCodeCoverage() {
-  childProcess.exec('mkdir js', function(err){
-    childProcess.exec('coffee -o js/' + codeCoverage.files + ' -c ' + codeCoverage.files, function(err){
-      childProcess.exec('coffee -o js/' + codeCoverage.tests + ' -c ' + codeCoverage.tests, function(err){
-        childProcess.exec('jscoverage js ' + codeCoverage.usual, function(err){
-          require.paths.unshift(codeCoverage.usual);
-          $.start();
+  childProcess.exec('rm -fr rdy tmp ' + codeCoverage.usual + ' ' + codeCoverage.base, function(err){
+    console.log('rm -fr rdy tmp ' + codeCoverage.usual + ' ' + codeCoverage.base);
+    handleErr(err);  
+    childProcess.exec('mkdir rdy ' + codeCoverage.base, function(err){
+      console.log('mkdir rdy ' + codeCoverage.base);
+      handleErr(err);
+      childProcess.exec('coffee -o rdy/' + codeCoverage.files + ' -c ' + codeCoverage.files, function(err) {
+        console.log('coffee -o rdy/' + codeCoverage.files + ' -c ' + codeCoverage.files);
+        handleErr(err);
+        childProcess.exec('coffee -o tmp-' + codeCoverage.tests + ' -c ' + codeCoverage.tests, function(err) {
+          console.log('coffee -o tmp-' + codeCoverage.tests + ' -c ' + codeCoverage.tests);
+          // coffee -o tmp-spec -c spec, copy to rdy-spec, jscoverage rdy cov, rm rdy/spec, mkdir rdy/spec, mv rdy-spec rdy/spec, rm tmp-spec
+          handleErr(err);
+          fs.readdir('tmp-' + codeCoverage.tests, function (err, files) {
+            console.log(files);
+            async.concatSeries(files, 
+              function(innerfile, callback) {
+                callback(null, ['tmp-' + codeCoverage.tests + '/' + innerfile]);
+              }, function (err, innerfiles) {
+                console.log(innerfiles);
+                async.forEach(innerfiles, handleFile, function(err){
+                  childProcess.exec('jscoverage rdy ' + codeCoverage.usual, function(err) {
+                    console.log('jscoverage rdy ' + codeCoverage.usual);
+                    handleErr(err);
+                    require.paths.unshift(codeCoverage.usual);
+                    $.start();
+                  });
+              });                          
+            });
+          });
         });
       });
     });
   });
 }
+  
+  
 //     
 //   if(path.existsSync(codeCoverage.usual)) {
 //     childProcess.exec('rm -fr ' + codeCoverage.usual, function(err){
